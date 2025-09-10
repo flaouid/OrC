@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carnet des entreprises</title>
+
+  <!-- Manifest -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Couleur de la barre iOS -->
+  <meta name="theme-color" content="#4CAF50">
+
+  <!-- Icône (à remplacer par ton propre logo PNG carré) -->
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f7f7f7;
+    }
+    h1 {
+      text-align: center;
+    }
+    form {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    input, button {
+      padding: 8px;
+      margin: 5px 0;
+      width: 100%;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    .entreprise {
+      background: white;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .actions button {
+      flex: 1;
+    }
+    #search {
+      margin-bottom: 20px;
+      padding: 8px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <h1>📒 Carnet des entreprises</h1>
+
+  <input type="text" id="search" placeholder="🔍 Rechercher une entreprise...">
+
+  <form id="form">
+    <input type="text" id="nom" placeholder="Nom de l'entreprise" required>
+    <input type="text" id="ville" placeholder="Ville" required>
+    <input type="time" id="ouverture" required>
+    <input type="time" id="fermeture" required>
+    <input type="time" id="fermetureVendredi" placeholder="Fermeture vendredi (optionnel)">
+    <input type="tel" id="telephone" placeholder="Téléphone" required>
+    <button type="submit">Ajouter</button>
+  </form>
+
+  <div id="liste"></div>
+
+  <script>
+    let entreprises = JSON.parse(localStorage.getItem("entreprises")) || [];
+
+    const form = document.getElementById("form");
+    const liste = document.getElementById("liste");
+    const search = document.getElementById("search");
+
+    function afficherEntreprises(filter="") {
+      liste.innerHTML = "";
+      entreprises
+        .filter(e => e.nom.toLowerCase().includes(filter.toLowerCase()))
+        .forEach((e, index) => {
+          const div = document.createElement("div");
+          div.className = "entreprise";
+          div.innerHTML = `
+            <strong>${e.nom}</strong> (${e.ville})<br>
+            🕒 ${e.ouverture} - ${e.fermeture}<br>
+            ${e.fermetureVendredi ? "📅 Vendredi : ferme à " + e.fermetureVendredi + "<br>" : ""}
+            📞 ${e.telephone}
+            <div class="actions">
+              <button onclick="modifierEntreprise(${index})">Modifier</button>
+              <button onclick="supprimerEntreprise(${index})">Supprimer</button>
+            </div>
+          `;
+          liste.appendChild(div);
+        });
+    }
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const entreprise = {
+        nom: document.getElementById("nom").value,
+        ville: document.getElementById("ville").value,
+        ouverture: document.getElementById("ouverture").value,
+        fermeture: document.getElementById("fermeture").value,
+        fermetureVendredi: document.getElementById("fermetureVendredi").value || null,
+        telephone: document.getElementById("telephone").value
+      };
+      entreprises.push(entreprise);
+      localStorage.setItem("entreprises", JSON.stringify(entreprises));
+      form.reset();
+      afficherEntreprises();
+    });
+
+    function supprimerEntreprise(index) {
+      entreprises.splice(index, 1);
+      localStorage.setItem("entreprises", JSON.stringify(entreprises));
+      afficherEntreprises(search.value);
+    }
+
+    function modifierEntreprise(index) {
+      const e = entreprises[index];
+      document.getElementById("nom").value = e.nom;
+      document.getElementById("ville").value = e.ville;
+      document.getElementById("ouverture").value = e.ouverture;
+      document.getElementById("fermeture").value = e.fermeture;
+      document.getElementById("fermetureVendredi").value = e.fermetureVendredi || "";
+      document.getElementById("telephone").value = e.telephone;
+      supprimerEntreprise(index);
+    }
+
+    search.addEventListener("input", () => afficherEntreprises(search.value));
+
+    afficherEntreprises();
+
+    // Enregistrement du Service Worker
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js")
+        .then(() => console.log("Service Worker enregistré !"))
+        .catch(err => console.error("Erreur SW:", err));
+    }
+  </script>
+</body>
+</html>
